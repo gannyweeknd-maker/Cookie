@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Install ffmpeg + audio libs
+# Install ffmpeg + opus
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libopus0 \
@@ -9,13 +9,11 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy requirements first
+# Install Python deps first (better caching)
 COPY requirements.txt .
-
-# Install Python deps
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy rest of project
+# Copy project files
 COPY . .
 
 # Start bot
