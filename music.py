@@ -12,9 +12,14 @@ class Music(commands.Cog):
 
         vc = ctx.voice_client
         if not vc:
-            vc = await ctx.author.voice.channel.connect()
+         vc = await ctx.author.voice.channel.connect(self_deaf=True)
 
-        vc.play(discord.FFmpegPCMAudio(url))
+        vc.play(
+    discord.FFmpegPCMAudio(
+        url,
+        executable="ffmpeg"
+    )
+        )
         await ctx.send("🎵 Playing")
 
     @commands.command()
