@@ -9,36 +9,46 @@ class Music(commands.Cog):
     @commands.command()
     async def play(self, ctx, *, search: str):
         if not ctx.author.voice:
-            return await ctx.send("Join VC first")
+            return await ctx.send("Join a VC first")
+
+        await ctx.send("🔎 Searching...")
 
         vc = ctx.voice_client
 
         if not vc:
             vc = await ctx.author.voice.channel.connect()
 
-        await ctx.send("🔍 Searching...")
-
+        # yt-dlp options (ANTI-BLOCK)
         ydl_opts = {
-            "format": "bestaudio",
-            "quiet": True
+            "format": "bestaudio/best",
+            "quiet": True,
+            "noplaylist": True,
+            "default_search": "ytsearch",
+            "source_address": "0.0.0.0",
+
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android"]
+                }
+            }
         }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch:{search}", download=False)
-            url = info["entries"][0]["url"]
-            title = info["entries"][0]["title"]
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(search, download=False)
 
-        source = await discord.FFmpegOpusAudio.from_probe(url)
+                if "entries" in info:
+                    info = info["entries"][0]
 
-        vc.stop()
-        vc.play(source)
+                url = info["url"]
+                title = info.get("title", "Unknown title")
 
-        await ctx.send(f"🎵 Now playing: {title}")
+        except Exception as e:
+            return await ctx.send(f"❌ Error:\n{e}")
 
-    @commands.command()
-    async def stop(self, ctx):
-        if ctx.voice_client:
-            await ctx.voice_client.disconnect()
+        # Stop previous audio
+        if vc.is_playing():
+            vc.stop()
 
-async def setup(bot):
-    await bot.add_cog(Music(bot))
+        # Play audio
+        source = await discord.FFmpegOpusAudio.from
