@@ -7,7 +7,7 @@ class Music(commands.Cog):
         self.bot = bot
 
     @commands.command()
-    async def play(self, ctx, *, query: str):
+    async def play(self, ctx, *, search: str):
         if not ctx.author.voice:
             return await ctx.send("Join VC first")
 
@@ -17,25 +17,22 @@ class Music(commands.Cog):
 
         ydl_opts = {
             "format": "bestaudio",
-            "noplaylist": True,
-            "quiet": True,
+            "quiet": True
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch:{query}", download=False)
+            info = ydl.extract_info(f"ytsearch:{search}", download=False)
             url = info["entries"][0]["url"]
 
-        source = discord.FFmpegPCMAudio(
-            url,
-            executable="ffmpeg",
-            before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-            options="-vn"
-        )
-
+        source = discord.FFmpegPCMAudio(url)
         vc.play(source)
-        await ctx.send(f"🎵 Playing: {query}")
+
+        await ctx.send(f"🎵 Playing {search}")
 
     @commands.command()
     async def stop(self, ctx):
         if ctx.voice_client:
-            await ctx.voice
+            await ctx.voice_client.disconnect()
+
+async def setup(bot):
+    await bot.add_cog(Music(bot))
