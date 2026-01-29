@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import yt_dlp
-
+import asyncio
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -9,51 +9,52 @@ class Music(commands.Cog):
 
     @commands.command()
     async def play(self, ctx, *, search: str):
-        # User must be in VC
         if not ctx.author.voice:
-            return await ctx.send("Join a VC first!")
+            return await ctx.send("Join a VC first")
 
-        channel = ctx.author.voice.channel
+        await ctx.send("🔍 Searching...")
 
+        # Connect to VC
         vc = ctx.voice_client
         if not vc:
-            vc = await channel.connect()
+            vc = await ctx.author.voice.channel.connect()
 
+        # yt-dlp options
         ydl_opts = {
-            "format": "bestaudio",
+            "format": "bestaudio/best",
+            "noplaylist": True,
             "quiet": True,
-            "noplaylist": True
+            "default_search": "ytsearch",
+            "extract_flat": False,
         }
 
-        await ctx.send("🔎 Searching...")
+        loop = asyncio.get_event_loop()
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(
-                f"ytsearch:{search}",
-                download=False
+            info = await loop.run_in_executor(
+                None, lambda: ydl.extract_info(search, download=False)
             )
-            url = info["entries"][0]["url"]
-            title = info["entries"][0]["title"]
 
-        source = discord.FFmpegPCMAudio(
-            url,
-            before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-            options="-vn"
-        )
+        if "entries" in info:
+            info = info["entries"][0]
 
+        url = info["url"]
+
+        # Stop current audio if playing
         if vc.is_playing():
             vc.stop()
 
+        source = await discord.FFmpegOpusAudio.from_probe(url)
+
         vc.play(source)
-        await ctx.send(f"🎵 Playing: {title}")
+
+        await ctx.send(f"🎶 Now playing: {info.get('title')}")
 
     @commands.command()
     async def stop(self, ctx):
-        vc = ctx.voice_client
-        if vc:
-            await vc.disconnect()
-            await ctx.send("⏹ Stopped and left VC")
-
+        if ctx.voice_client:
+            await ctx.voice_client.disconnect()
+            await ctx.send("⏹ Stopped")
 
 async def setup(bot):
     await bot.add_cog(Music(bot))
