@@ -11,7 +11,9 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 @bot.event
 async def on_ready():
     print(f"🍪 COOKIE online as {bot.user}")
-
+@bot.command()
+async def ping(ctx):
+    await ctx.send("Pong! 🏓")
 async def main():
     await bot.load_extension("actions")
     await bot.load_extension("music")
