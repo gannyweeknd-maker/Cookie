@@ -20,7 +20,6 @@ class Music(commands.Cog):
 
         ydl_opts = {
             "format": "bestaudio",
-            "noplaylist": True,
             "quiet": True
         }
 
@@ -29,16 +28,12 @@ class Music(commands.Cog):
             url = info["entries"][0]["url"]
             title = info["entries"][0]["title"]
 
-        source = discord.FFmpegPCMAudio(
-            url,
-            before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-            options="-vn"
-        )
+        source = await discord.FFmpegOpusAudio.from_probe(url)
 
         vc.stop()
         vc.play(source)
 
-        await ctx.send(f"🎶 Now playing: {title}")
+        await ctx.send(f"🎵 Now playing: {title}")
 
     @commands.command()
     async def stop(self, ctx):
