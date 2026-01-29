@@ -1,4 +1,4 @@
 import os
 
 TOKEN = os.getenv("TOKEN")
-PREFIX = "!"
+PREFIX = ","
