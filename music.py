@@ -24,7 +24,12 @@ class Music(commands.Cog):
             info = ydl.extract_info(f"ytsearch:{search}", download=False)
             url = info["entries"][0]["url"]
 
-        source = discord.FFmpegPCMAudio(url)
+        source = discord.FFmpegPCMAudio(
+    url,
+    executable="ffmpeg",
+    before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+    options="-vn"
+        )
         vc.play(source)
 
         await ctx.send(f"🎵 Playing {search}")
