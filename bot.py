@@ -3,7 +3,9 @@ from discord.ext import commands
 from config import TOKEN, PREFIX
 import asyncio
 
-intents = discord.Intents.all()
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 @bot.event
