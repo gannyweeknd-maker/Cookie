@@ -1,23 +1,21 @@
+import os
 import discord
 from discord.ext import commands
-from config import TOKEN, PREFIX
-import asyncio
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-bot = commands.Bot(command_prefix=PREFIX, intents=intents)
+# Load opus (VERY IMPORTANT)
+discord.opus.load_opus("libopus.so.0")
+
+intents = discord.Intents.all()
+bot = commands.Bot(command_prefix="c!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"🍪 COOKIE online as {bot.user}")
-@bot.command()
-async def ping(ctx):
-    await ctx.send("Pong! 🏓")
-async def main():
-    await bot.load_extension("actions")
-    await bot.load_extension("music")
-    await bot.load_extension("games")
-    await bot.start(TOKEN)
+    print(f"Logged in as {bot.user}")
 
+async def main():
+    async with bot:
+        await bot.load_extension("music")
+        await bot.start(os.getenv("TOKEN"))
+
+import asyncio
 asyncio.run(main())
