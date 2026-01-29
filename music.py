@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 import yt_dlp
-import asyncio
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -10,51 +9,41 @@ class Music(commands.Cog):
     @commands.command()
     async def play(self, ctx, *, search: str):
         if not ctx.author.voice:
-            return await ctx.send("Join a VC first")
+            return await ctx.send("Join VC first")
 
-        await ctx.send("🔍 Searching...")
-
-        # Connect to VC
         vc = ctx.voice_client
+
         if not vc:
             vc = await ctx.author.voice.channel.connect()
 
-        # yt-dlp options
+        await ctx.send("🔍 Searching...")
+
         ydl_opts = {
-            "format": "bestaudio/best",
+            "format": "bestaudio",
             "noplaylist": True,
-            "quiet": True,
-            "default_search": "ytsearch",
-            "extract_flat": False,
+            "quiet": True
         }
 
-        loop = asyncio.get_event_loop()
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = await loop.run_in_executor(
-                None, lambda: ydl.extract_info(search, download=False)
-            )
+            info = ydl.extract_info(f"ytsearch:{search}", download=False)
+            url = info["entries"][0]["url"]
+            title = info["entries"][0]["title"]
 
-        if "entries" in info:
-            info = info["entries"][0]
+        source = discord.FFmpegPCMAudio(
+            url,
+            before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+            options="-vn"
+        )
 
-        url = info["url"]
-
-        # Stop current audio if playing
-        if vc.is_playing():
-            vc.stop()
-
-        source = await discord.FFmpegOpusAudio.from_probe(url)
-
+        vc.stop()
         vc.play(source)
 
-        await ctx.send(f"🎶 Now playing: {info.get('title')}")
+        await ctx.send(f"🎶 Now playing: {title}")
 
     @commands.command()
     async def stop(self, ctx):
         if ctx.voice_client:
             await ctx.voice_client.disconnect()
-            await ctx.send("⏹ Stopped")
 
 async def setup(bot):
     await bot.add_cog(Music(bot))
