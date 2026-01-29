@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import yt_dlp
+import asyncio
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -9,23 +10,20 @@ class Music(commands.Cog):
     @commands.command()
     async def play(self, ctx, *, search: str):
         if not ctx.author.voice:
-            return await ctx.send("Join a VC first")
-
-        await ctx.send("🔎 Searching...")
+            return await ctx.send("Join VC first")
 
         vc = ctx.voice_client
-
         if not vc:
             vc = await ctx.author.voice.channel.connect()
 
-        # yt-dlp options (ANTI-BLOCK)
+        await ctx.send("🔍 Searching...")
+
         ydl_opts = {
-            "format": "bestaudio/best",
-            "quiet": True,
+            "format": "bestaudio",
             "noplaylist": True,
+            "quiet": True,
             "default_search": "ytsearch",
             "source_address": "0.0.0.0",
-
             "extractor_args": {
                 "youtube": {
                     "player_client": ["android"]
@@ -33,22 +31,31 @@ class Music(commands.Cog):
             }
         }
 
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(search, download=False)
+        loop = asyncio.get_event_loop()
 
-                if "entries" in info:
-                    info = info["entries"][0]
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = await loop.run_in_executor(
+                None,
+                lambda: ydl.extract_info(search, download=False)
+            )
 
-                url = info["url"]
-                title = info.get("title", "Unknown title")
+        if "entries" in info:
+            info = info["entries"][0]
 
-        except Exception as e:
-            return await ctx.send(f"❌ Error:\n{e}")
+        url = info["url"]
+        title = info["title"]
 
-        # Stop previous audio
-        if vc.is_playing():
-            vc.stop()
+        source = await discord.FFmpegOpusAudio.from_probe(url)
 
-        # Play audio
-        source = await discord.FFmpegOpusAudio.from
+        vc.stop()
+        vc.play(source)
+
+        await ctx.send(f"🎶 Now playing: {title}")
+
+    @commands.command()
+    async def stop(self, ctx):
+        if ctx.voice_client:
+            await ctx.voice_client.disconnect()
+
+async def setup(bot):
+    await bot.add_cog(Music(bot))
